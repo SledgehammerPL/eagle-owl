@@ -85,7 +85,7 @@ int db_open(void)
 
     if(ret == SQLITE_OK)
     {
-      sqlite3_create_function(db, "update_stat_db", 5, SQLITE_UTF8, NULL, 
+      sqlite3_create_function(db, "update_stat_db", 6, SQLITE_UTF8, NULL, 
                               &update_stat, NULL, NULL);
 
       SQL_EXEC(db, CREATE_UPDATE_STAT_TRIGGER, "Create update_stat trigger");
@@ -159,7 +159,9 @@ int db_insert_hist(struct record_data *rec)
   do
   {
     retry = false;
+    printf("debug4\n");
     ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
+    printf("debug5\n");
     if(ret == SQLITE_BUSY)
     {
       sqlite3_free(errmsg);
@@ -168,7 +170,7 @@ int db_insert_hist(struct record_data *rec)
     }
     else if(ret != SQLITE_OK)
     {
-      printf("db_insert_hist error: %s\n", errmsg);
+      printf("db_insert_hist Error: %s\n", errmsg);
       sqlite3_free(errmsg);
     }
   }
@@ -179,54 +181,51 @@ int db_insert_hist(struct record_data *rec)
 
 void update_stat(sqlite3_context *context, int argc, sqlite3_value **argv)
 {
-  if(argc != 5)
+  if(argc != 6)
     return;
 
-  int y = sqlite3_value_int(argv[0]);
-  int m = sqlite3_value_int(argv[1]);
-  int d = sqlite3_value_int(argv[2]);
-  int h = sqlite3_value_int(argv[3]);
-  double kwh = sqlite3_value_double(argv[4]);
+  int addr = sqlite3_value_int(argv[0]);
+  int y = sqlite3_value_int(argv[1]);
+  int m = sqlite3_value_int(argv[2]);
+  int d = sqlite3_value_int(argv[3]);
+  int h = sqlite3_value_int(argv[4]);
+  double kwh = sqlite3_value_double(argv[5]);
 //  printf("update_stat callback called %d/%d/%d @%dh: %f kwh\n", y, m, d, h, kwh);
-  update_stat_db(y, m, d, h, kwh);
+  update_stat_db(addr, y, m, d, h, kwh);
 }
 
-int update_stat_db(int y, int m, int d, int h, double kwh)
+int update_stat_db(int addr, int y, int m, int d, int h, double kwh)
 {
-  int addr = 0; // TODO
-  char sql[512];
-  double day_conso = 0;
-  double night_conso = 0;
-  
+  char sql[1024];
+  int i = 0;
+  double hour_conso[24];
+  for(i=0;i<25;i++) {
+    hour_conso[i]=0;
+  } 
   if(!db || !stat_db)
   {
     fprintf(stderr, "Error: db_insert_hist dbs not opened!\n");
     return -1;
   }
+  hour_conso[h] += kwh;
 
-  if(get_day_of_week(y, m, d) < 5 && is_full_tariff(h)) // TODO: use tariffs from db
-    day_conso += kwh;
-  else
-    night_conso += kwh;
-
-  // update energy_hour_stat 
-  sprintf(sql, UPDATE_STAT_HOUR, kwh, day_conso, night_conso, y, m, d, h, 
-                                 addr, y, m, d, h, kwh, day_conso, night_conso);
+  // update energy_hour_stat
+  sprintf(sql, UPDATE_STAT_HOUR, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, d, h, addr, 
+                                 addr, y, m, d, h, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
   SQL_EXEC(stat_db, sql, "Update stat_hour DB");
-
   // update energy_day_stat 
-  sprintf(sql, UPDATE_STAT_DAY, kwh, day_conso, night_conso, y, m, d,
-                                addr, y, m, d, kwh, day_conso, night_conso);
+  sprintf(sql, UPDATE_STAT_DAY, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, d, addr,
+                                addr, y, m, d, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
   SQL_EXEC(stat_db, sql, "Update stat_day DB");
   
   // update energy_month_stat 
-  sprintf(sql, UPDATE_STAT_MONTH, kwh, day_conso, night_conso, y, m,
-                                  addr, y, m, kwh, day_conso, night_conso);
+  sprintf(sql, UPDATE_STAT_MONTH, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, addr,
+                                  addr, y, m, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
   SQL_EXEC(stat_db, sql, "Update stat_month DB");
 
   // update energy_year_stat
-  sprintf(sql, UPDATE_STAT_YEAR, kwh, day_conso, night_conso, y,
-                                 addr, y, kwh, day_conso, night_conso);
+  sprintf(sql, UPDATE_STAT_YEAR, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, addr,
+                                 addr, y, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
   SQL_EXEC(stat_db, sql, "Update stat_year DB");
 
   return SQLITE_OK;
