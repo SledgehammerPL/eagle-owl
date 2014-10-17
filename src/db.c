@@ -159,9 +159,7 @@ int db_insert_hist(struct record_data *rec)
   do
   {
     retry = false;
-    printf("debug4\n");
     ret = sqlite3_exec(db, sql, NULL, NULL, &errmsg);
-    printf("debug5\n");
     if(ret == SQLITE_BUSY)
     {
       sqlite3_free(errmsg);
@@ -196,7 +194,7 @@ void update_stat(sqlite3_context *context, int argc, sqlite3_value **argv)
 
 int update_stat_db(int addr, int y, int m, int d, int h, double kwh)
 {
-  char sql[1024];
+  char sql[2048];
   int i = 0;
   double hour_conso[24];
   for(i=0;i<25;i++) {
