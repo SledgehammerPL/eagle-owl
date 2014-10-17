@@ -1,6 +1,6 @@
 <html>
 <head>
-
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >.
 <title>Electricity consumption</title>
 
 <link rel="stylesheet" type="text/css" media="all" href="jsdatepick-calendar/jsDatePick_ltr.css" />
@@ -11,23 +11,10 @@
 <body>
 
 <?php
+setlocale(LC_ALL, 'pl_PL.utf-8');
 function month_to_string($nb)
 {
-  $months = array(
-    1 => 'Janvier',
-    2 => 'Fevrier',
-    3 => 'Mars',
-    4 => 'Avril',
-    5 => 'Mai',
-    6 => 'Juin',
-    7 => 'Juillet',
-    8 => 'Aout',
-    9 => 'Septembre',
-    10 => 'Octobre',
-    11 => 'Novembre',
-    12 => 'Decembre',
-  );
-  return $months[$nb];
+  return strftime("%B", mktime(0,0,0,$nb));
 }
 
 
