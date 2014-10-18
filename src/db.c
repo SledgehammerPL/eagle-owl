@@ -66,9 +66,6 @@ static int create_stat_db()
   printf("%s doesn't exist -> create it.\n", EAGLE_OWL_STAT_DB);
   sqlite3_open_v2(EAGLE_OWL_STAT_DB, &stat_db, 
                   SQLITE_OPEN_READWRITE|SQLITE_OPEN_CREATE, NULL);
-  SQL_EXEC(stat_db, CREATE_YEAR_STAT, "Create energy_year_stat table");
-  SQL_EXEC(stat_db, CREATE_MONTH_STAT, "Create energy_month_stat table");
-  SQL_EXEC(stat_db, CREATE_DAY_STAT, "Create energy_year_day table");
   SQL_EXEC(stat_db, CREATE_HOUR_STAT, "Create energy_year_hour table");
 
   return ret;
@@ -192,39 +189,27 @@ void update_stat(sqlite3_context *context, int argc, sqlite3_value **argv)
   update_stat_db(addr, y, m, d, h, kwh);
 }
 
+int dayofweek(int y, int m, int d) { /* 0 = Sunday */
+  static int t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+  y -= m < 3;
+  return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
+}
+
 int update_stat_db(int addr, int y, int m, int d, int h, double kwh)
 {
   char sql[2048];
   int i = 0;
-  double hour_conso[24];
-  for(i=0;i<25;i++) {
-    hour_conso[i]=0;
-  } 
+  int dow;
   if(!db || !stat_db)
   {
     fprintf(stderr, "Error: db_insert_hist dbs not opened!\n");
     return -1;
   }
-  hour_conso[h] += kwh;
-
+  dow = dayofweek(y,m,d);
   // update energy_hour_stat
-  sprintf(sql, UPDATE_STAT_HOUR, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, d, h, addr, 
-                                 addr, y, m, d, h, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
+  sprintf(sql, UPDATE_STAT_HOUR, kwh, y, m, d, h, addr, 
+                                 addr, y, m, d, h, dow, kwh);
   SQL_EXEC(stat_db, sql, "Update stat_hour DB");
-  // update energy_day_stat 
-  sprintf(sql, UPDATE_STAT_DAY, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, d, addr,
-                                addr, y, m, d, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
-  SQL_EXEC(stat_db, sql, "Update stat_day DB");
-  
-  // update energy_month_stat 
-  sprintf(sql, UPDATE_STAT_MONTH, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, m, addr,
-                                  addr, y, m, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
-  SQL_EXEC(stat_db, sql, "Update stat_month DB");
-
-  // update energy_year_stat
-  sprintf(sql, UPDATE_STAT_YEAR, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23], y, addr,
-                                 addr, y, kwh, hour_conso[0],hour_conso[1],hour_conso[2],hour_conso[3],hour_conso[4],hour_conso[5],hour_conso[6],hour_conso[7],hour_conso[8],hour_conso[9],hour_conso[10],hour_conso[11],hour_conso[12],hour_conso[13],hour_conso[14],hour_conso[15],hour_conso[16],hour_conso[17],hour_conso[18],hour_conso[19],hour_conso[20],hour_conso[21],hour_conso[22],hour_conso[23]);
-  SQL_EXEC(stat_db, sql, "Update stat_year DB");
 
   return SQLITE_OK;
 }
@@ -246,9 +231,6 @@ int db_update_status(void)
   // update status
   sprintf(sql, "UPDATE energy_hour_stat SET status = 1 WHERE record_count = %d", 60);
   SQL_EXEC(stat_db, sql, "Update energy_hour_stat status");
-
-  sprintf(sql, "UPDATE energy_day_stat SET status = 1 WHERE record_count = %d", 60*24);
-  SQL_EXEC(stat_db, sql, "Update energy_day_stat status");
 
   return SQLITE_OK;
 }

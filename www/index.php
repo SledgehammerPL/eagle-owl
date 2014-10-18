@@ -12,6 +12,20 @@
 
 <?php
 setlocale(LC_ALL, 'pl_PL.utf-8');
+for($i=0;$i<7;$i++) { //0 - Sunday
+  $tariffs['G11'][$i] = array(0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 0, 14 => 0, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 0, 23 => 0);
+  $tariffs['G12'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 1, 14 => 1, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 1, 23 => 1);
+  if ($i==0 || $i==6) {
+    $tariffs['G12w'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 1, 7 => 1, 8 => 1, 9 => 1, 10 => 1, 11 => 1, 12 => 1, 13 => 1, 14 => 1, 15 => 1, 16 => 1, 17 => 1, 18 => 1, 19 => 1, 20 => 1, 21 => 1, 22 => 1, 23 => 0);
+  } else {
+    $tariffs['G12w'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 1, 14 => 1, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 1, 23 => 1);
+  }
+}
+if (isset($_GET['tariff'])) {
+  $tariff=$_GET['tariff'];
+} else {
+  $tariff="G12w";
+}
 function month_to_string($nb)
 {
   return strftime("%B", mktime(0,0,0,$nb));
@@ -53,8 +67,7 @@ function var_to_js($jsname,$a)
   return $ret;
 }
 
-function get_data($db, $year=0, $month=0, $day=0)
-{
+function get_data($db, $year=0, $month=0, $day=0, $addr=0) {
   $i = 0;
   $unit = "year";
   if($year)
@@ -72,6 +85,9 @@ function get_data($db, $year=0, $month=0, $day=0)
     if($year)  $req.= "year = \"$year\" ";
     if($month) $req.= "AND month = \"$month\" ";
     if($day)   $req.= "AND day = \"$day\" ";
+  }
+  if ($addr) {
+    $req.="AND addr = \"$addr\" ";
   }
   $req.= "GROUP BY year";
   if($year)  $req.= ", month";
@@ -94,80 +110,89 @@ function get_data($db, $year=0, $month=0, $day=0)
   return $arr;
 }
 
-function get_stat_data($db, $year=0, $month=0, $day=0)
-{
+function get_stat_data($db, $year=0, $month=0, $day=0, $addr=0) {
+  global $tariffs,$tariff;
   $i = 0;
   $unit = "year";
-  $table = "energy_year_stat";
+  $table = "energy_hour_stat";
   if($year){
     $unit = "month";
-    $table = "energy_month_stat";
   }
   if($month){
     $unit = "day";
-    $table = "energy_day_stat";
   }
   if($day){
     $unit = "hour";
-    $table = "energy_hour_stat";
   }
 
-  $req = "SELECT ";
-  $req.= "$unit, ";
-  $req2 = "kwh_total, kwh_week_total, kwh_weekend_total FROM ".$table." ";
+  $req = "SELECT year, month, day, hour, dow, SUM(kwh_total) FROM energy_hour_stat ";
   if($unit <> "year"){
     $req2.= "WHERE ";
     if($year)  $req2.= "year = \"$year\" ";
     if($month) $req2.= "AND month = \"$month\" ";
+    if($addr)  $req2.= "AND addr = \"$addr\" ";
     if($day){  
-	  $req2.= "AND day = \"$day\" ";
-	  $req2.="UNION SELECT hour+24, ".$req2."+1 AND hour=0 ";
-	}
+  	  $req2.= "AND day = \"$day\" ";
+	//    $req2.="UNION SELECT hour+24, ".$req2."+1 AND hour=0 ";
+  	}
+    if ($addr) 
+      $reg2.= "AND addr = \"$addr\" ";
   }
-    
-  $req.= $req2."ORDER BY $unit;";
-
+  $req.= $req2."GROUP BY".($addr ? " addr," : "")." year, month, day, hour, dow ORDER BY year, month, day, hour;";
 //  echo "<br/>$req<br/><br/>";
   $db->busyTimeout (10000);
+  echo "<pre>".$req;
   $result = $db->query($req);
   $arr = array();
   while ($res = $result->fetchArray())
   {
-    if($unit == "month")
-      $arr[$i] = array( 0 => month_to_string($res[0]), 
-                        1 => $res[1],
-                        2 => $res[2],
-                        3 => $res[3] );
-    else
-      $arr[$i] = array( 0 => "$res[0]",
-                        1 => $res[1],
-                        2 => $res[2],
-                        3 => $res[3] );
-                        
-    $i++;
-  }
-  return $arr;
+  //print_r($res);
+  //  echo "o godzinie ".$res[3]." w ".$res[4]." jest taryfa nr ".$tariffs[$tariff][$res[4]][$res[3]]."<br>";
+    switch($unit) {
+      case 'year':
+        $index = $res[0];
+        $arr[$index][0] = "$res[0]";
+        break;
+      case 'month':
+        $index = $res[1];
+        $arr[$index][0] =  month_to_string($res[1]);
+        break;      
+      case 'day':
+        $index = $res[2];
+        $arr[$index][0] = "$res[2]";
+        break;
+      case 'hour':
+        $index = $res[3];
+        $arr[$index][0] = "$res[3]";
+        break;
+      default:
+    }
+    $arr[$index][1] += $res[5];
+    $arr[$index][2] +=0;
+    $arr[$index][3] +=0;
+    $arr[$index][4] +=0;
+    $arr[$index][$tariffs[$tariff][$res[4]][$res[3]]+2] += $res[5];
+
+  return array_values($arr);
 }
 
-function get_weekend_data($db, $year=0, $month=0, $day=0)
-{
+function get_weekend_data($db, $year=0, $month=0, $day=0, $addr=0) {
   $i = 0;
-  if($year)
-  {
+  if($year) {
       $table = "energy_year_stat";
     if($month)
       $table = "energy_month_stat";
     if($day)
       $table = "energy_day_stat";
     
-    $req = "SELECT kwh_week_total, kwh_weekend_total FROM ".$table;
+    $req = "SELECT 10 AS kwh_week_total, 20 AS kwh_weekend_total FROM ".$table;
     $req.= " WHERE ";
     if($year)  $req.= "year = \"$year\" ";
     if($month) $req.= "AND month = \"$month\" ";
     if($day)   $req.= "AND day = \"$day\" ";
   }
   else
-    $req = "SELECT sum(kwh_week_total), sum(kwh_weekend_total) FROM energy_year_stat";
+    $req = "SELECT 15 AS kwh_week_total, 25 AS kwh_weekend_total FROM energy_year_stat";
 
   $req.= ";";
   
@@ -223,21 +248,25 @@ $day  = 0;
 $graph_type = 'bar'; // graph type : bar, line or pie
 $title = "Total";
 $axis_x_name = '';
+if(isset($_GET['addr'])) {
+  $addr = intval($_GET['addr']);
+
+}
 if(isset($_GET['year']))
 {
-  $year = $_GET['year'];
+  $year = intval($_GET['year']);
   $title = "$year";
   $axis_x_name = 'month';
 }
 if(isset($_GET['month']))
 {
-  $month = $_GET['month'];
+  $month = intval($_GET['month']);
   $title = month_to_string($month)." $year";
   $axis_x_name = 'day';
 }
 if(isset($_GET['day']))
 {
-  $day = $_GET['day'];
+  $day = intval($_GET['day']);
   $graph_type = 'line';
   $title = "$day ".month_to_string($month)." $year";
   $axis_x_name = 'hour';
@@ -245,12 +274,13 @@ if(isset($_GET['day']))
 
 if($stat_db)
 {
-  $data = get_stat_data($stat_db, $year, $month, $day);
-  $wedata = get_weekend_data($stat_db, $year, $month, $day);
+  $data = get_stat_data($stat_db, $year, $month, $day, $addr);
+  print_r($data);
+//  $wedata = get_weekend_data($stat_db, $year, $month, $day, $addr);
 }  
 else
 {
-  $data = get_data($db, $year, $month, $day);
+  $data = get_data($db, $year, $month, $day, $addr);
 }
 
 // Following lines are to select a valid date in the calendar

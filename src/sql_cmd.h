@@ -72,76 +72,14 @@
 #define DELETE_UPDATE_STAT_TRIGGER "DROP TRIGGER IF EXISTS updatestat_cb;"
 
 // record_count: number of minutes records that have been used to compute the stat
-// e.g: for a full day_stat: record_count should be 24*60 (24 hours of 60 minutes)
+// e.g: for a full hour_stat: record_count should be 60 (60 minutes)
 // status: 0: the stat is complete (record_count is the max value)
 //         1: the stat is incomplete (record_count is lower than the max value)
 
-#define CREATE_YEAR_STAT    "CREATE TABLE energy_year_stat("              \
-                            "addr INT, year INT, kwh_total INT,"          \
-                            " kwh_0_total INT, kwh_1_total INT," \
-                            " kwh_2_total INT, kwh_3_total INT," \
-                            " kwh_4_total INT, kwh_5_total INT," \
-                            " kwh_6_total INT, kwh_7_total INT," \
-                            " kwh_8_total INT, kwh_9_total INT," \
-                            " kwh_10_total INT, kwh_11_total INT," \
-                            " kwh_12_total INT, kwh_13_total INT," \
-                            " kwh_14_total INT, kwh_15_total INT," \
-                            " kwh_16_total INT, kwh_17_total INT," \
-                            " kwh_18_total INT, kwh_19_total INT," \
-                            " kwh_20_total INT, kwh_21_total INT," \
-                            " kwh_22_total INT, kwh_23_total INT," \
-                            " record_count INT, status INT,"              \
-                            " PRIMARY KEY(addr, year));"
-
-#define CREATE_MONTH_STAT   "CREATE TABLE energy_month_stat("              \
-                            "addr INT, year INT, month INT, kwh_total INT,"\
-                            " kwh_0_total INT, kwh_1_total INT," \
-                            " kwh_2_total INT, kwh_3_total INT," \
-                            " kwh_4_total INT, kwh_5_total INT," \
-                            " kwh_6_total INT, kwh_7_total INT," \
-                            " kwh_8_total INT, kwh_9_total INT," \
-                            " kwh_10_total INT, kwh_11_total INT," \
-                            " kwh_12_total INT, kwh_13_total INT," \
-                            " kwh_14_total INT, kwh_15_total INT," \
-                            " kwh_16_total INT, kwh_17_total INT," \
-                            " kwh_18_total INT, kwh_19_total INT," \
-                            " kwh_20_total INT, kwh_21_total INT," \
-                            " kwh_22_total INT, kwh_23_total INT," \
-                            " record_count INT, status INT,"               \
-                            " PRIMARY KEY(addr, year, month));"
-
-#define CREATE_DAY_STAT     "CREATE TABLE energy_day_stat("                         \
-                            "addr INT, year INT, month INT, day INT, kwh_total INT,"              \
-                            " kwh_0_total INT, kwh_1_total INT," \
-                            " kwh_2_total INT, kwh_3_total INT," \
-                            " kwh_4_total INT, kwh_5_total INT," \
-                            " kwh_6_total INT, kwh_7_total INT," \
-                            " kwh_8_total INT, kwh_9_total INT," \
-                            " kwh_10_total INT, kwh_11_total INT," \
-                            " kwh_12_total INT, kwh_13_total INT," \
-                            " kwh_14_total INT, kwh_15_total INT," \
-                            " kwh_16_total INT, kwh_17_total INT," \
-                            " kwh_18_total INT, kwh_19_total INT," \
-                            " kwh_20_total INT, kwh_21_total INT," \
-                            " kwh_22_total INT, kwh_23_total INT," \
-                            " record_count INT, status INT,"       \
-                            " PRIMARY KEY(addr, year, month, day));"
-
-#define CREATE_HOUR_STAT    "CREATE TABLE energy_hour_stat("                        \
-                            "addr INT, year INT, month INT, day INT, hour INT, kwh_total INT,"    \
-                            " kwh_0_total INT, kwh_1_total INT," \
-                            " kwh_2_total INT, kwh_3_total INT," \
-                            " kwh_4_total INT, kwh_5_total INT," \
-                            " kwh_6_total INT, kwh_7_total INT," \
-                            " kwh_8_total INT, kwh_9_total INT," \
-                            " kwh_10_total INT, kwh_11_total INT," \
-                            " kwh_12_total INT, kwh_13_total INT," \
-                            " kwh_14_total INT, kwh_15_total INT," \
-                            " kwh_16_total INT, kwh_17_total INT," \
-                            " kwh_18_total INT, kwh_19_total INT," \
-                            " kwh_20_total INT, kwh_21_total INT," \
-                            " kwh_22_total INT, kwh_23_total INT," \
-                            " record_count INT, status INT,"       \
+#define CREATE_HOUR_STAT    "CREATE TABLE energy_hour_stat("          \
+                            "addr INT, year INT, month INT, day INT," \
+                            " hour INT, dow INT, kwh_total INT,"      \
+                            " record_count INT, status INT,"          \
                             " PRIMARY KEY(addr, year, month, day, hour));"
 
 #define ATTACH_IMPORT_DB    "ATTACH DATABASE '%s' AS import_db"
@@ -198,43 +136,12 @@
                            " %f, %f, %d, %d, %f, %f, %f, %f);"
 
 #define UPDATE_STAT_HOUR   "INSERT OR REPLACE INTO energy_hour_stat"                        \
-                           " SELECT addr, year, month, day, hour, kwh_total + %f,"          \
-                           "  kwh_0_total + %f, kwh_1_total + %f, kwh_2_total + %f, kwh_3_total + %f, kwh_4_total + %f, kwh_5_total + %f, kwh_6_total + %f, kwh_7_total + %f, kwh_8_total + %f, kwh_9_total + %f, kwh_10_total + %f, kwh_11_total + %f, kwh_12_total + %f, kwh_13_total + %f, kwh_14_total + %f, kwh_15_total + %f, kwh_16_total + %f, kwh_17_total + %f, kwh_18_total + %f, kwh_19_total + %f, kwh_20_total + %f, kwh_21_total + %f, kwh_22_total + %f, kwh_23_total + %f,"                 \
+                           " SELECT addr, year, month, day, hour, dow, kwh_total + %f,"          \
                            "  record_count + 1 AS c, status FROM energy_hour_stat"          \
                            "  WHERE year=%d AND month=%d AND day=%d AND hour=%d AND addr=%d"\
                            " UNION "                                                        \
-                           " SELECT %d, %d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, 1 as r, 0"              \
+                           " SELECT %d, %d, %d, %d, %d, %d, %f, 1 as r, 0"              \
                            " ORDER BY r DESC"                                               \
-                           " LIMIT 1;"
-
-#define UPDATE_STAT_DAY    "INSERT OR REPLACE INTO energy_day_stat"                   \
-                           " SELECT addr, year, month, day, kwh_total + %f,"          \
-                           "  kwh_0_total + %f, kwh_1_total + %f, kwh_2_total + %f, kwh_3_total + %f, kwh_4_total + %f, kwh_5_total + %f, kwh_6_total + %f, kwh_7_total + %f, kwh_8_total + %f, kwh_9_total + %f, kwh_10_total + %f, kwh_11_total + %f, kwh_12_total + %f, kwh_13_total + %f, kwh_14_total + %f, kwh_15_total + %f, kwh_16_total + %f, kwh_17_total + %f, kwh_18_total + %f, kwh_19_total + %f, kwh_20_total + %f, kwh_21_total + %f, kwh_22_total + %f, kwh_23_total + %f,"           \
-                           "  record_count + 1 AS c, status FROM energy_day_stat"     \
-                           "  WHERE year = %d AND month = %d AND day = %d AND addr=%d"\
-                           " UNION "                                                  \
-                           " SELECT %d, %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, 1 as r, 0"            \
-                           " ORDER BY r DESC"                                         \
-                           " LIMIT 1;"
-
-#define UPDATE_STAT_MONTH  "INSERT OR REPLACE INTO energy_month_stat"              \
-                           " SELECT addr, year, month, kwh_total + %f,"            \
-                           "  kwh_0_total + %f, kwh_1_total + %f, kwh_2_total + %f, kwh_3_total + %f, kwh_4_total + %f, kwh_5_total + %f, kwh_6_total + %f, kwh_7_total + %f, kwh_8_total + %f, kwh_9_total + %f, kwh_10_total + %f, kwh_11_total + %f, kwh_12_total + %f, kwh_13_total + %f, kwh_14_total + %f, kwh_15_total + %f, kwh_16_total + %f, kwh_17_total + %f, kwh_18_total + %f, kwh_19_total + %f, kwh_20_total + %f, kwh_21_total + %f, kwh_22_total + %f, kwh_23_total + %f,"        \
-                           "  record_count + 1 AS c, status FROM energy_month_stat"\
-                           "  WHERE year = %d AND month = %d AND addr=%d"          \
-                           " UNION "                                               \
-                           " SELECT %d, %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, 1 as r, 0"             \
-                           " ORDER BY r DESC"                                      \
-                           " LIMIT 1;"
-
-#define UPDATE_STAT_YEAR   "INSERT OR REPLACE INTO energy_year_stat"               \
-                           " SELECT addr, year, kwh_total + %f,"                   \
-                           "  kwh_0_total + %f, kwh_1_total + %f, kwh_2_total + %f, kwh_3_total + %f, kwh_4_total + %f, kwh_5_total + %f, kwh_6_total + %f, kwh_7_total + %f, kwh_8_total + %f, kwh_9_total + %f, kwh_10_total + %f, kwh_11_total + %f, kwh_12_total + %f, kwh_13_total + %f, kwh_14_total + %f, kwh_15_total + %f, kwh_16_total + %f, kwh_17_total + %f, kwh_18_total + %f, kwh_19_total + %f, kwh_20_total + %f, kwh_21_total + %f, kwh_22_total + %f, kwh_23_total + %f,"        \
-                           "  record_count + 1 AS c, status FROM energy_year_stat" \
-                           "  WHERE year = %d AND addr=%d"                         \
-                           " UNION "                                               \
-                           " SELECT %d, %d, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, %f, 1 as r, 0"                 \
-                           " ORDER BY r DESC"                                      \
                            " LIMIT 1;"
 
 #endif//__EAGLEOWL_SQL_H__
