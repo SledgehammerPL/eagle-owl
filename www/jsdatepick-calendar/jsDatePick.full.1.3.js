@@ -59,7 +59,7 @@ g_l = [];
 g_l["MONTHS"]= [];
 g_l["DAYS_3"]= [];
 var formatter = new Intl.DateTimeFormat("pl", { month: "long" });
-for(i=1;i<13;i++) {
+for(i=0;i<12;i++) {
   g_l["MONTHS"].push(formatter.format(new Date(2000,i,1)));
 }
 //g_l["MONTHS"] = ["January","February","March","April","May","June","July","August","September","Paździer","November","December"];

@@ -12,15 +12,8 @@
 
 <?php
 setlocale(LC_ALL, 'pl_PL.utf-8');
-for($i=0;$i<7;$i++) { //0 - Sunday
-  $tariffs['G11'][$i] = array(0 => 0, 1 => 0, 2 => 0, 3 => 0, 4 => 0, 5 => 0, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 0, 14 => 0, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 0, 23 => 0);
-  $tariffs['G12'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 1, 14 => 1, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 1, 23 => 1);
-  if ($i==0 || $i==6) {
-    $tariffs['G12w'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 1, 7 => 1, 8 => 1, 9 => 1, 10 => 1, 11 => 1, 12 => 1, 13 => 1, 14 => 1, 15 => 1, 16 => 1, 17 => 1, 18 => 1, 19 => 1, 20 => 1, 21 => 1, 22 => 1, 23 => 0);
-  } else {
-    $tariffs['G12w'][$i] = array(0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, 6 => 0, 7 => 0, 8 => 0, 9 => 0, 10 => 0, 11 => 0, 12 => 0, 13 => 1, 14 => 1, 15 => 0, 16 => 0, 17 => 0, 18 => 0, 19 => 0, 20 => 0, 21 => 0, 22 => 1, 23 => 1);
-  }
-}
+require "prices.php";
+require "tariffs.php";
 if (isset($_GET['tariff'])) {
   $tariff=$_GET['tariff'];
 } else {
@@ -111,7 +104,7 @@ function get_data($db, $year=0, $month=0, $day=0, $addr=0) {
 }
 
 function get_stat_data($db, $year=0, $month=0, $day=0, $addr=0) {
-  global $tariffs,$tariff;
+  global $tariffs,$tariff,$prices;
   $i = 0;
   $unit = "year";
   $table = "energy_hour_stat";
@@ -167,19 +160,20 @@ function get_stat_data($db, $year=0, $month=0, $day=0, $addr=0) {
     $arr[$index][2] +=0;
     $arr[$index][3] +=0;
     $arr[$index][4] +=0;
-    $arr[$index][$tariffs[$tariff][$res[4]][$res[3]]+2] += $res[5];
+    $arr[$index][$tariffs[$tariff][$res[1]][$res[4]][$res[3]]+2] += $res[5];
   }
   foreach($arr as $key=>$item) {
     $val1+=$item[2];
     $val2+=$item[3];
     $val3+=$item[4];
   }
-   $arr2[0] = array( 0 => 'Rate 1', 1 => $val1);
-   $arr2[1] = array( 0 => 'Rate 2', 1 => $val2);
-   $arr2[2] = array( 0 => 'Rate 3', 1 => $val3);
+   $arr2[0] = array( 0 => round($prices[$tariff][0]*$val1/1000,2)." zł", 1 => $val1);
+   $arr2[1] = array( 0 => round($prices[$tariff][1]*$val2/1000,2)." zł", 1 => $val2);
+   $arr2[2] = array( 0 => round($prices[$tariff][2]*$val3/1000,2)." zł", 1 => $val3);
 
   $all['bar']=array_values($arr);
   $all['pie']=$arr2;
+  $all['pietitle']=round($prices[$tariff][0]*$val1/1000,2)+ round($prices[$tariff][1]*$val2/1000,2)+round($prices[$tariff][2]*$val3/1000,2)." zł";
   return $all;
 }
 
@@ -251,6 +245,7 @@ if ($stat_db) {
 //  print_r($all);
   $data = $all['bar'];
   $wedata = $all['pie'];
+  $pietitle = $all['pietitle'];
 } else {
   $data = get_data($db, $year, $month, $day, $addr);
 }
@@ -340,7 +335,7 @@ function draw_we_chart(title, axis_x_name)
   myChart.setLegend('#88FF88', 'Rate 2');
   myChart.setLegend('#8888FF', 'Rate 3');
   myChart.setPieRadius(95);
-  myChart.setShowXValues(false);
+  myChart.setShowXValues(true);
   myChart.setLegendShow(true);
   myChart.setLegendFontFamily('Times New Roman');
   myChart.setLegendFontSize(10);
@@ -400,7 +395,7 @@ if (!$data)
 else{
   echo "<div id=\"graph\"><script language=javascript>draw_chart('$graph_type', '$title','$axis_x_name')</script></div>";
   if ($wedata)
-    echo "<div id=\"wegraph\"><script language=javascript>draw_we_chart('Tarifs','$axis_x_name')</script></div>";
+    echo "<div id=\"wegraph\"><script language=javascript>draw_we_chart('$pietitle','$axis_x_name')</script></div>";
 }
 
 ?>
